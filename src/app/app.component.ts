@@ -42,8 +42,7 @@ export class AppComponent implements OnInit {
 
   checkboxLabelsOBJ = [
     {
-      name: 'Área cultivavel',
-      // searchName: 'area_cultivavel',
+      name: 'Área cultivável',
       searchName: 'consolida',
       color: '#0EA5E9',
       class: 'blue-checkbox',
@@ -51,7 +50,7 @@ export class AppComponent implements OnInit {
     },
     {
       name: 'Área de preservação permanente',
-      searchName: 'area_de_preservacao_permanente',
+      searchName: ['area_de_preservacao_permanente', 'app'],
       color: '#572000',
       class: 'brown-checkbox',
       isChecked: true,
@@ -77,22 +76,24 @@ export class AppComponent implements OnInit {
       isChecked: true,
     },
     {
-      name: "Curso D'água",
-      searchName: 'curso_d\'agua',
+      name: 'Curso D\'água',
+      searchName: 'curso',
       color: '#075985',
       isChecked: true,
     },
     {
-      name: "Outros",
+      name: 'Outros',
       searchName: 'outros',
       color: 'purple',
       isChecked: true,
     },
   ];
 
-  constructor() {}
+  constructor() {
+  }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+  }
 
   mapClicked(event: any) {
     console.log(event);
@@ -118,7 +119,7 @@ export class AppComponent implements OnInit {
 
   handlePolygonClick(event: google.maps.PolyMouseEvent, polygon?: ExtendedPolygonDTO) {
     console.log(event);
-
+    //fechar as outras windows antes de abrir, dentro do mesmo polygon
     const infoWindow = new google.maps.InfoWindow({
       content: `
         Nome: ${polygon?.name} <br>
@@ -133,22 +134,21 @@ export class AppComponent implements OnInit {
   kmlToGeoJson(kmlString: string): any {
     const parser = new DOMParser();
     const root = parser.parseFromString(kmlString, 'application/xml');
-    const geoJson = togpx.kml(root);
-    return geoJson;
+    return togpx.kml(root);
   }
 
   geoJsonParaLatLngLiteral(geoJson: any): ExtendedPolygonOptionsDTO[] {
-    const polygons: google.maps.PolygonOptions[] = [];
+    const polygonOptions: google.maps.PolygonOptions[] = [];
 
     geoJson.features.forEach((feature: any) => {
       if (feature.geometry.type === 'GeometryCollection') {
-        this.processarGeometryCollection(feature, polygons);
+        this.processarGeometryCollection(feature, polygonOptions);
       } else {
-        this.processarGeometry(feature.geometry, feature, polygons);
+        this.processarGeometry(feature.geometry, feature, polygonOptions);
       }
     });
 
-    polygons.forEach((polygonOptions) => {
+    polygonOptions.forEach((polygonOptions) => {
       const poly = new ExtendedPolygonDTO(polygonOptions);
       this.polygons.push(poly);
 
@@ -158,8 +158,8 @@ export class AppComponent implements OnInit {
       });
     });
 
-    console.log(polygons);
-    return polygons;
+    console.log(polygonOptions);
+    return polygonOptions;
   }
 
   processarGeometryCollection(feature: any, polygons: google.maps.PolygonOptions[]) {
@@ -168,7 +168,7 @@ export class AppComponent implements OnInit {
     });
   }
 
-  processarGeometry(geometry: any, feature: any, polygons: google.maps.PolygonOptions[]): any {
+  processarGeometry(geometry: any, feature: any, polygonOptions: google.maps.PolygonOptions[]): any {
     let paths: google.maps.LatLng[] = [];
 
     if (geometry.type === 'Polygon') {
@@ -180,11 +180,11 @@ export class AppComponent implements OnInit {
     if (paths.length > 0) {
       this.pegarCentro(paths);
 
-      const clippedPolygon: ExtendedPolygonOptionsDTO = {
+      const options: ExtendedPolygonOptionsDTO = {
         paths: paths,
         fillColor: feature.properties.fill || '#0284C7',
         strokeColor: feature.properties.stroke || 'black',
-        fillOpacity: feature.properties['fill-opacity'] || 1,
+        fillOpacity: feature.properties['fill-opacity'] || 0.8,
         strokeOpacity: feature.properties['stroke-opacity'] || 1,
         strokeWeight: feature.properties['stroke-width'] || 1,
         name: feature.properties.name,
@@ -193,7 +193,7 @@ export class AppComponent implements OnInit {
       };
 
       this.paths = paths;
-      polygons.push(clippedPolygon);
+      polygonOptions.push(options);
     }
   }
 
@@ -229,41 +229,22 @@ export class AppComponent implements OnInit {
   }
 
   pegarPoligonoPeloNome(event: any, obj: any): any {
-    /**
-     *
-      IDF: "605525"
-      NOM_TEMA: "Curso d'Ã¡gua natural de atÃ© 10 metros"
-      NUM_AREA: 0.186811
-      fill: "#0000ff"
-      fill-opacity: 1
-      icon-color: "#efebe7"
-      icon-opacity: 1
-      stroke: "#5555ff"
-      stroke-opacity: 1
-      stroke-width: 10
-      styleUrl: "#falseColor160"
-     */
-
-    let polygonsIncluidos: ExtendedPolygonDTO[] = [];
-    polygonsIncluidos = this.polygons.filter((polygon)=> {
+    this.polygons.filter((polygon)=> {
       if (obj.searchName === 'outros') {
         return !polygon.name?.toLowerCase().includes('consolidada') &&
-        !polygon.name?.toLowerCase().includes('area_de_preservacao_permanente') &&
-        !polygon.name?.toLowerCase().includes('reserva_legal') &&
-        !polygon.name?.toLowerCase().includes('vegetacao_nativa') &&
-        !polygon.name?.toLowerCase().includes('publica') &&
-        !polygon.name?.toLowerCase().includes('curso_d\'agua');
+          !polygon.name?.toLowerCase().includes('area_de_preservacao_permanente') &&
+          !polygon.name?.toLowerCase().includes('app') &&
+          !polygon.name?.toLowerCase().includes('reserva_legal') &&
+          !polygon.name?.toLowerCase().includes('vegetacao_nativa') &&
+          !polygon.name?.toLowerCase().includes('publica') &&
+          !polygon.name?.toLowerCase().includes('curso');
       }
-      return polygon.name?.toLowerCase().includes(obj.searchName) || this.normalizeString(polygon?.options?.NOM_TEMA).includes(obj.searchName)
-    });
-    if (event.checked) {
-      polygonsIncluidos.map((polygon) => {
-        // polygon.setOptions({fillColor: obj.color, strokeColor: 'black'});
-        polygon.setVisible(true);
-      });
-    } else {
-      polygonsIncluidos.map((polygon) => polygon.setVisible(false));
-    }
+      if (Array.isArray(obj.searchName)) {
+        return obj.searchName.some((searchName: string) => this.normalizeString(polygon?.name).includes(searchName));
+      } else {
+        return this.normalizeString(polygon?.name ?? '').includes(obj.searchName);
+      }
+    }).forEach((polygon) => polygon.setVisible(event.checked));
   }
 
   sobreporImagem(paths: any[]): void {
@@ -276,7 +257,6 @@ export class AppComponent implements OnInit {
 
   normalizeString(str: string | undefined): string {
     if (!str) return '';
-
     const decomposed = str.normalize('NFD');
     const withoutAccents = decomposed.replace(/[\u0300-\u036f]/g, '');
     return withoutAccents.toLowerCase();
