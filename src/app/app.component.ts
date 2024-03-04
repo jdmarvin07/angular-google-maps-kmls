@@ -184,9 +184,9 @@ export class AppComponent implements OnInit {
         paths: paths,
         fillColor: feature.properties.fill || '#0284C7',
         strokeColor: feature.properties.stroke || 'black',
-        fillOpacity: feature.properties['fill-opacity'] || 1,
-        strokeOpacity: feature.properties['stroke-opacity'] || 1,
-        strokeWeight: feature.properties['stroke-width'] || 1,
+        // fillOpacity: feature.properties['fill-opacity'] || 1,
+        // strokeOpacity: feature.properties['stroke-opacity'] || 1,
+        // strokeWeight: feature.properties['stroke-width'] || 1,
         name: feature.properties.name,
         nome: feature.properties.nome,
         area_ha: feature.properties.area_ha,
@@ -246,15 +246,16 @@ export class AppComponent implements OnInit {
 
     let polygonsIncluidos: ExtendedPolygonDTO[] = [];
     polygonsIncluidos = this.polygons.filter((polygon)=> {
+      const polygonName = polygon?.name?.toLowerCase() ? polygon.name : '';
       if (obj.searchName === 'outros') {
-        return !polygon.name?.toLowerCase().includes('consolidada') &&
-        !polygon.name?.toLowerCase().includes('area_de_preservacao_permanente') &&
-        !polygon.name?.toLowerCase().includes('reserva_legal') &&
-        !polygon.name?.toLowerCase().includes('vegetacao_nativa') &&
-        !polygon.name?.toLowerCase().includes('publica') &&
-        !polygon.name?.toLowerCase().includes('curso_d\'agua');
+        return !polygonName.includes('consolidada') &&
+        !polygonName.includes('area_de_preservacao_permanente') &&
+        !polygonName.includes('reserva_legal') &&
+        !polygonName.includes('vegetacao_nativa') &&
+        !polygonName.includes('publica') &&
+        !polygonName.includes('curso_d\'agua');
       }
-      return polygon.name?.toLowerCase().includes(obj.searchName) || this.normalizeString(polygon?.options?.NOM_TEMA).includes(obj.searchName)
+      return polygonName.includes(obj.searchName)
     });
     if (event.checked) {
       polygonsIncluidos.map((polygon) => {
