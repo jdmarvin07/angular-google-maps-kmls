@@ -1,11 +1,15 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { MapInfoWindow } from '@angular/google-maps';
 import * as togpx from '@tmcw/togeojson';
+import { CustomImageOverlayService } from './services/custom-image-overlay.service';
 
 interface ExtendedPolygonOptionsDTO extends google.maps.PolygonOptions {
   name?: string;
   nome?: string;
   area_ha?: string;
+  IDF?: string;
+  NOM_TEMA?: string;
+  NUM_AREA?: number;
 }
 
 class ExtendedPolygonDTO extends google.maps.Polygon {
@@ -31,37 +35,57 @@ export class AppComponent implements OnInit {
     lng: -51.92528,
   };
   polygons: ExtendedPolygonDTO[] = [];
+  paths: google.maps.LatLng[] = [];
+  bounds!: google.maps.LatLngBounds;
+  img = 'https://s3.sa-east-1.amazonaws.com/interno.zoomrural.com.br/documentos/1e407fd1-164f-4241-ad6c-0c5253e33a38/testefundnat_4ncoeiW.png?AWSAccessKeyId=AKIATVNNEMBMGDZF2XEX&Signature=pzSuL6iZugMO0gdI9FwtgA3D8yo%3D&Expires=1709490308';
   zoom = 4;
 
   checkboxLabelsOBJ = [
     {
       name: 'Área cultivavel',
-      sigla: 'area_cultivavel',
+      // searchName: 'area_cultivavel',
+      searchName: 'consolida',
+      color: '#0EA5E9',
+      class: 'blue-checkbox',
       isChecked: true,
     },
     {
       name: 'Área de preservação permanente',
-      sigla: 'area_de_preservacao_permanente',
+      searchName: 'area_de_preservacao_permanente',
+      color: '#572000',
+      class: 'brown-checkbox',
       isChecked: true,
     },
     {
       name: 'Reserva legal',
-      sigla: 'reserva_legal',
+      searchName: 'reserva_legal',
+      color: '#F43F5E',
+      class: 'green-checkbox',
       isChecked: true,
     },
     {
       name: 'Vegetação nativa',
-      sigla: 'vegetacao_nativa',
+      searchName: 'vegetacao_nativa',
+      color: '#84CC16',
+      class: 'pink-checkbox',
       isChecked: true,
     },
     {
       name: 'Utilidade pública',
-      sigla: 'utilidade_publica',
+      searchName: 'publica',
+      color: '#4B5563',
       isChecked: true,
     },
     {
       name: "Curso D'água",
-      sigla: 'curso_d\'agua',
+      searchName: 'curso_d\'agua',
+      color: '#075985',
+      isChecked: true,
+    },
+    {
+      name: "Outros",
+      searchName: 'outros',
+      color: 'purple',
       isChecked: true,
     },
   ];
@@ -92,8 +116,18 @@ export class AppComponent implements OnInit {
     reader.readAsText(file);
   }
 
-  handlePolygonClick(event: google.maps.PolyMouseEvent) {
+  handlePolygonClick(event: google.maps.PolyMouseEvent, polygon?: ExtendedPolygonDTO) {
     console.log(event);
+
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        Nome: ${polygon?.name} <br>
+        Área: ${polygon?.options ? polygon?.options.area_ha : ''} ha <br>
+        Nome: ${polygon?.options ? polygon.options.nome : ''} <br>`,
+      position: event.latLng,
+    });
+
+    infoWindow.open(this.map);
   }
 
   kmlToGeoJson(kmlString: string): any {
@@ -120,10 +154,11 @@ export class AppComponent implements OnInit {
 
       poly.setMap(this.map);
       poly.addListener('click', (event: google.maps.PolyMouseEvent) => {
-        this.handlePolygonClick(event);
+        this.handlePolygonClick(event, poly);
       });
     });
 
+    console.log(polygons);
     return polygons;
   }
 
@@ -149,11 +184,15 @@ export class AppComponent implements OnInit {
         paths: paths,
         fillColor: feature.properties.fill || '#0284C7',
         strokeColor: feature.properties.stroke || 'black',
+        fillOpacity: feature.properties['fill-opacity'] || 1,
+        strokeOpacity: feature.properties['stroke-opacity'] || 1,
+        strokeWeight: feature.properties['stroke-width'] || 1,
         name: feature.properties.name,
         nome: feature.properties.nome,
         area_ha: feature.properties.area_ha,
       };
 
+      this.paths = paths;
       polygons.push(clippedPolygon);
     }
   }
@@ -189,13 +228,57 @@ export class AppComponent implements OnInit {
     this.zoom = 16;
   }
 
-  pegarPoligonoPeloNome(event: any, nome: string): any {
+  pegarPoligonoPeloNome(event: any, obj: any): any {
+    /**
+     *
+      IDF: "605525"
+      NOM_TEMA: "Curso d'Ã¡gua natural de atÃ© 10 metros"
+      NUM_AREA: 0.186811
+      fill: "#0000ff"
+      fill-opacity: 1
+      icon-color: "#efebe7"
+      icon-opacity: 1
+      stroke: "#5555ff"
+      stroke-opacity: 1
+      stroke-width: 10
+      styleUrl: "#falseColor160"
+     */
+
     let polygonsIncluidos: ExtendedPolygonDTO[] = [];
-    polygonsIncluidos = this.polygons.filter((polygon)=> polygon.name?.toLowerCase().includes(nome));
+    polygonsIncluidos = this.polygons.filter((polygon)=> {
+      if (obj.searchName === 'outros') {
+        return !polygon.name?.toLowerCase().includes('consolidada') &&
+        !polygon.name?.toLowerCase().includes('area_de_preservacao_permanente') &&
+        !polygon.name?.toLowerCase().includes('reserva_legal') &&
+        !polygon.name?.toLowerCase().includes('vegetacao_nativa') &&
+        !polygon.name?.toLowerCase().includes('publica') &&
+        !polygon.name?.toLowerCase().includes('curso_d\'agua');
+      }
+      return polygon.name?.toLowerCase().includes(obj.searchName) || this.normalizeString(polygon?.options?.NOM_TEMA).includes(obj.searchName)
+    });
     if (event.checked) {
-      polygonsIncluidos.map((polygon) => polygon.setVisible(true));
+      polygonsIncluidos.map((polygon) => {
+        // polygon.setOptions({fillColor: obj.color, strokeColor: 'black'});
+        polygon.setVisible(true);
+      });
     } else {
       polygonsIncluidos.map((polygon) => polygon.setVisible(false));
     }
+  }
+
+  sobreporImagem(paths: any[]): void {
+    const bounds = new google.maps.LatLngBounds();
+    paths.forEach((path: any) => bounds.extend(path));
+    this.bounds = bounds;
+    const overlay = new CustomImageOverlayService(this.bounds, this.img);
+    overlay.setMap(this.map);
+  }
+
+  normalizeString(str: string | undefined): string {
+    if (!str) return '';
+
+    const decomposed = str.normalize('NFD');
+    const withoutAccents = decomposed.replace(/[\u0300-\u036f]/g, '');
+    return withoutAccents.toLowerCase();
   }
 }

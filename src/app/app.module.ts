@@ -5,10 +5,12 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { GoogleMapsModule, MapPolygon } from '@angular/google-maps';
 import { MaterialModule } from './angular-material/material.module';
+import { CustomImageOverlayComponent } from './custom-image-overlay/custom-image-overlay.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    CustomImageOverlayComponent
   ],
   imports: [
     BrowserModule,

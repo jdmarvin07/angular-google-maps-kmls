@@ -1,3 +1,39 @@
-input[type="checkbox"]:checked {
-  background-color: red;
+.blue-checkbox .mat-checkbox-frame {
+  border-color: blue !important;
+}
+
+.green-checkbox .mat-checkbox-frame {
+  border-color: green !important;
+}
+
+.pink-checkbox .mat-checkbox-frame {
+  border-color: pink !important;
+}
+
+.gray-checkbox .mat-checkbox-frame {
+  border-color: gray !important;
+}
+
+.brown-checkbox .mat-checkbox-frame {
+  border-color: brown !important;
+}
+
+.blue-checkbox .mat-checkbox-background, .blue-checkbox.mat-checkbox-checked .mat-checkbox-background {
+  background-color: blue !important;
+}
+
+.green-checkbox .mat-checkbox-background, .green-checkbox.mat-checkbox-checked .mat-checkbox-background {
+  background-color: green !important;
+}
+
+.pink-checkbox .mat-checkbox-background, .pink-checkbox.mat-checkbox-checked .mat-checkbox-background {
+  background-color: pink !important;
+}
+
+.gray-checkbox .mat-checkbox-background, .gray-checkbox.mat-checkbox-checked .mat-checkbox-background {
+  background-color: gray !important;
+}
+
+.brown-checkbox .mat-checkbox-background, .brown-checkbox.mat-checkbox-checked .mat-checkbox-background {
+  background-color: brown !important;
 }
